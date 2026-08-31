@@ -15,37 +15,32 @@ public class ImageReader {
             return ImageIO.read(new File(imgPath));
     }
 
-    protected pixels[][] generateMatrix (BufferedImage img, float thickness){
-        int height = img.getHeight();
-        int width = img.getWidth();
-        pixels[][] matrix = new pixels[height][width];
-        BufferedImage bg = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        Graphics gp = bg.getGraphics();
-        gp.drawImage(img, 0,0,null);
-        gp.dispose();
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int rgb = img.getRGB(x, y);
+    public static pixels[][] generateMatrix(BufferedImage image, float maxThickness) {
+        int width = image.getWidth();
+        int height = image.getHeight();
 
-                // Extrai os canais RGB
+        pixels[][] matrix = new pixels[width][height];
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int rgb = image.getRGB(x, y);
                 int r = (rgb >> 16) & 0xFF;
                 int g = (rgb >> 8) & 0xFF;
                 int b = rgb & 0xFF;
 
-                // Fórmula de luminância
-                int cinza = (int) (0.299 * r + 0.587 * g + 0.114 * b);
-                matrix[x][y].tons = cinza;
-                if(cinza>LIMIT) {
-                    matrix[x][y].thickness = thickness;
-                } else {
-                    matrix[x][y].thickness = (thickness + LIMITTHCK)/2;
-                }
+                // Converter para escala de cinza
+                int gray = (int) (0.299 * r + 0.587 * g + 0.114 * b);
+
+                float thickness = (gray / 255.0f) * maxThickness;
+
+                matrix[x][y] = new pixels(gray, thickness);
             }
         }
+
         return matrix;
     }
 
-    protected class pixels {
+    public static class pixels {
         int tons;
         float thickness;
 

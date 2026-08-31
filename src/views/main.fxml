@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.collections.FXCollections?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.stage.FileChooser?>
+
+<?import java.lang.String?>
+<VBox xmlns="http://javafx.com/javafx/11.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="controllers.MainController"
+      spacing="20" alignment="TOP_CENTER"
+      style="-fx-padding: 30; -fx-background-color: #f0f0f0;">
+
+    <!-- Title -->
+    <Text text="Conversor IMG → STL"
+          style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2c3e50;"/>
+
+    <Text text="Transforme imagens em modelos 3D para impressão"
+          style="-fx-font-size: 14px; -fx-fill: #7f8c8d;"/>
+
+    <Separator/>
+
+    <!-- Seleção de arquivo -->
+    <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: #bdc3c7;">
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Button fx:id="btnSelecionarArquivo" text="📁 Selecionar Imagem"
+                    onAction="#selecionarArquivo"
+                    style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20;"/>
+
+            <Label fx:id="lblNomeArquivo" text="Nenhum arquivo selecionado"
+                   style="-fx-text-fill: #7f8c8d;"/>
+        </HBox>
+
+        <!-- Pré-visualização da imagem -->
+        <ImageView fx:id="imgPreview" fitHeight="200" fitWidth="300"
+                   preserveRatio="true" style="-fx-border-color: #bdc3c7; -fx-border-width: 1;"/>
+    </VBox>
+
+    <!-- Configurações -->
+    <GridPane hgap="20" vgap="15" style="-fx-background-color: white; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: #bdc3c7;">
+
+        <Label text="Largura do STL (mm):" GridPane.columnIndex="0" GridPane.rowIndex="0"
+               style="-fx-font-weight: bold;"/>
+        <TextField fx:id="txtLargura" text="100.0" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                   style="-fx-pref-width: 120;"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="0"
+               style="-fx-text-fill: #7f8c8d;"/>
+
+        <Label text="Altura Máxima (mm):" GridPane.columnIndex="0" GridPane.rowIndex="1"
+               style="-fx-font-weight: bold;"/>
+        <TextField fx:id="txtAltura" text="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1"
+                   style="-fx-pref-width: 120;"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="1"
+               style="-fx-text-fill: #7f8c8d;"/>
+
+        <Label text="Formato de exportação:" GridPane.columnIndex="0" GridPane.rowIndex="2"
+               style="-fx-font-weight: bold;"/>
+        <ComboBox fx:id="cbFormato" GridPane.columnIndex="1" GridPane.rowIndex="2"
+                  style="-fx-pref-width: 120;">
+            <items>
+                <FXCollections fx:factory="observableArrayList">
+                    <String fx:value="Binário (.stl)"/>
+                    <String fx:value="ASCII (.stl)"/>
+                </FXCollections>
+            </items>
+        </ComboBox>
+        <Label GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+    </GridPane>
+
+    <!-- Botão Gerar -->
+    <HBox alignment="CENTER" spacing="20">
+        <Button fx:id="btnGerar" text="🔧 Gerar STL"
+                onAction="#gerarSTL"
+                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-padding: 12 40;"/>
+
+        <Button fx:id="btnLimpar" text="🗑️ Limpar"
+                onAction="#limpar"
+                style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 30;"/>
+    </HBox>
+
+    <!-- Barra de progresso / Status -->
+    <VBox spacing="5" style="-fx-padding: 10;">
+        <ProgressBar fx:id="progressBar" progress="0"
+                     style="-fx-pref-width: 400; -fx-pref-height: 20;"/>
+        <Label fx:id="lblStatus" text="Aguardando..."
+               style="-fx-text-fill: #2c3e50; -fx-font-style: italic;"/>
+    </VBox>
+
+</VBox>
