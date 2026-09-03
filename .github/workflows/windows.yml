@@ -47,7 +47,7 @@ jobs:
           jpackage `
             --type exe `
             --name PNGtoSTL `
-            --input "target/jpackage-input" `
+            --input "target" `
             --main-jar "PNGtoSTL-1.0-SNAPSHOT.jar" `
             --main-class "application.MainApp" `
             --dest "target/dist" `
