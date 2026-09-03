@@ -1,0 +1,60 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          architecture: x64
+          cache: maven
+
+      - name: Check Java
+        run: java -version
+
+      - name: Build Maven
+        run: mvn --batch-mode clean package
+
+      - name: Copy application JAR
+        shell: pwsh
+        run: |
+          Copy-Item `
+            "target/PNGtoSTL-1.0-SNAPSHOT.jar" `
+            "target/jpackage-input/"
+
+      - name: Show jpackage input
+        shell: pwsh
+        run: |
+          Get-ChildItem "target/jpackage-input"
+
+      - name: Create EXE
+        shell: pwsh
+        run: |
+          jpackage `
+            --type exe `
+            --name PNGtoSTL `
+            --input "target/jpackage-input" `
+            --main-jar "PNGtoSTL-1.0-SNAPSHOT.jar" `
+            --main-class "application.MainApp" `
+            --dest "target/dist" `
+            --icon "src/resources/icon.ico"
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: PNGtoSTL-Windows
+          path: target/dist/*.exe
