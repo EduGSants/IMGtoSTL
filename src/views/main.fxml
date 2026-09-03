@@ -69,6 +69,12 @@
             </items>
         </ComboBox>
         <Label GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+
+        <CheckBox fx:id="chkinvert"
+                  text="Tornar a região branca como base"
+                  GridPane.columnIndex="0" GridPane.rowIndex="3"
+                  GridPane.columnSpan="2"
+                  style="-fx-padding: 5;"/>
     </GridPane>
 
     <!-- Botão Gerar -->

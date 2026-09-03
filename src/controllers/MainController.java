@@ -33,12 +33,14 @@ public class MainController {
     @FXML private Button btnLimpar;
     @FXML private ProgressBar progressBar;
     @FXML private Label lblStatus;
+    @FXML private CheckBox chkinvert;
 
     private File imagemSelecionada;
     private Mesh meshGerado;
 
     @FXML
     public void initialize() {
+        chkinvert.setSelected(false);
         txtLargura.setText("100.0");
         txtAltura.setText("5.0");
         cbFormato.setValue("Binário (.stl)");
@@ -85,6 +87,7 @@ public class MainController {
 
     @FXML
     private void gerarSTL() {
+        boolean invert = chkinvert.isSelected();
         if (imagemSelecionada == null) {
             mostrarAlerta("Erro", "Selecione uma imagem primeiro!");
             return;
@@ -115,7 +118,7 @@ public class MainController {
                         throw new Exception("Erro ao ler a imagem.");
                     }
 
-                    ImageReader.pixels[][] heightMap = ImageReader.generateMatrix(bufferedImage, alturaMax);
+                    ImageReader.pixels[][] heightMap = ImageReader.generateMatrix(bufferedImage, alturaMax, invert);
 
                     updateProgress(0.3, 100);
                     updateMessage("Gerando malha 3D...");

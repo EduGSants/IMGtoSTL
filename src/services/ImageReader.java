@@ -4,7 +4,6 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.awt.Graphics;
 
 public class ImageReader {
     private static final int LIMIT = 108;
@@ -15,7 +14,7 @@ public class ImageReader {
             return ImageIO.read(new File(imgPath));
     }
 
-    public static pixels[][] generateMatrix(BufferedImage image, float maxThickness) {
+    public static pixels[][] generateMatrix(BufferedImage image, float maxThickness, boolean invert) {
         int width = image.getWidth();
         int height = image.getHeight();
 
@@ -30,7 +29,9 @@ public class ImageReader {
 
                 // Converter para escala de cinza
                 int gray = (int) (0.299 * r + 0.587 * g + 0.114 * b);
-
+                if (invert) {
+                    gray = 255 -gray;
+                }
                 float thickness = (gray / 255.0f) * maxThickness;
 
                 matrix[x][y] = new pixels(gray, thickness);
