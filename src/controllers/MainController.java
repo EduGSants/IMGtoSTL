@@ -11,10 +11,8 @@ import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.concurrent.Task;
-
 import models.*;
 import services.*;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -27,27 +25,31 @@ public class MainController {
     @FXML private Label lblNomeArquivo;
     @FXML private ImageView imgPreview;
     @FXML private TextField txtLargura;
-    @FXML private TextField txtAltura;
+    @FXML private TextField txtAlturaBranco;
+    @FXML private TextField txtAlturaPreto;
+    @FXML private TextField txtAlturaVermelho;
     @FXML private ComboBox<String> cbFormato;
     @FXML private Button btnGerar;
     @FXML private Button btnLimpar;
     @FXML private ProgressBar progressBar;
     @FXML private Label lblStatus;
-    @FXML private CheckBox chkinvert;
 
     private File imagemSelecionada;
     private Mesh meshGerado;
 
     @FXML
     public void initialize() {
-        chkinvert.setSelected(false);
         txtLargura.setText("100.0");
-        txtAltura.setText("5.0");
+        txtAlturaBranco.setText("5.0");
+        txtAlturaPreto.setText("0.0");
+        txtAlturaVermelho.setText("2.5");
         cbFormato.setValue("Binário (.stl)");
         progressBar.setProgress(0);
 
-        txtLargura.textProperty().addListener((obs, old, newVal) -> validarEntrada(txtLargura));
-        txtAltura.textProperty().addListener((obs, old, newVal) -> validarEntrada(txtAltura));
+        txtLargura.textProperty().addListener((o, a, b) -> validarEntrada(txtLargura));
+        txtAlturaBranco.textProperty().addListener((o, a, b) -> validarEntrada(txtAlturaBranco));
+        txtAlturaPreto.textProperty().addListener((o, a, b) -> validarEntrada(txtAlturaPreto));
+        txtAlturaVermelho.textProperty().addListener((o, a, b) -> validarEntrada(txtAlturaVermelho));
     }
 
     private void validarEntrada(TextField field) {
@@ -87,18 +89,27 @@ public class MainController {
 
     @FXML
     private void gerarSTL() {
-        boolean invert = chkinvert.isSelected();
         if (imagemSelecionada == null) {
             mostrarAlerta("Erro", "Selecione uma imagem primeiro!");
             return;
         }
 
         try {
-            float largura = Float.parseFloat(txtLargura.getText());
-            float alturaMax = Float.parseFloat(txtAltura.getText());
+            float largura        = Float.parseFloat(txtLargura.getText());
+            float alturaBranco   = Float.parseFloat(txtAlturaBranco.getText());
+            float alturaPreto    = Float.parseFloat(txtAlturaPreto.getText());
+            float alturaVermelho = Float.parseFloat(txtAlturaVermelho.getText());
 
-            if (largura <= 0 || alturaMax <= 0) {
-                mostrarAlerta("Erro", "Largura e altura devem ser maiores que zero!");
+            if (largura <= 0) {
+                mostrarAlerta("Erro", "A largura deve ser maior que zero!");
+                return;
+            }
+            if (alturaBranco < 0 || alturaPreto < 0 || alturaVermelho < 0) {
+                mostrarAlerta("Erro", "As alturas não podem ser negativas!");
+                return;
+            }
+            if (alturaBranco == 0 && alturaPreto == 0 && alturaVermelho == 0) {
+                mostrarAlerta("Erro", "Pelo menos uma altura deve ser maior que zero!");
                 return;
             }
 
@@ -118,20 +129,18 @@ public class MainController {
                         throw new Exception("Erro ao ler a imagem.");
                     }
 
-                    ImageReader.pixels[][] heightMap = ImageReader.generateMatrix(bufferedImage, alturaMax, invert);
+                    // 👇 Nova chamada com 3 alturas
+                    ImageReader.pixels[][] heightMap = ImageReader.generateMatrix(
+                            bufferedImage, alturaBranco, alturaPreto, alturaVermelho);
 
                     updateProgress(0.3, 100);
                     updateMessage("Gerando malha 3D...");
 
                     MeshGenerator generator = new MeshGenerator();
-                    Mesh mesh = generator.createSolid(heightMap);
-
-                    // Armazenar o mesh no array
-                    meshHolder[0] = mesh;
+                    meshHolder[0] = generator.createSolid(heightMap);
 
                     updateProgress(1.0, 100);
                     updateMessage("Pronto para salvar!");
-
                     return null;
                 }
             };
@@ -263,7 +272,9 @@ public class MainController {
         lblStatus.setText("Aguardando...");
         progressBar.setProgress(0);
         txtLargura.setText("100.0");
-        txtAltura.setText("5.0");
+        txtAlturaBranco.setText("5.0");
+        txtAlturaPreto.setText("0.0");
+        txtAlturaVermelho.setText("2.5");
         cbFormato.setValue("Binário (.stl)");
     }
 

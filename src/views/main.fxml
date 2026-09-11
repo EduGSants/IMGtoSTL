@@ -43,23 +43,25 @@
     <!-- Configurações -->
     <GridPane hgap="20" vgap="15" style="-fx-background-color: white; -fx-padding: 20; -fx-border-radius: 10; -fx-border-color: #bdc3c7;">
 
-        <Label text="Largura do STL (mm):" GridPane.columnIndex="0" GridPane.rowIndex="0"
-               style="-fx-font-weight: bold;"/>
-        <TextField fx:id="txtLargura" text="100.0" GridPane.columnIndex="1" GridPane.rowIndex="0"
-                   style="-fx-pref-width: 120;"/>
-        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="0"
-               style="-fx-text-fill: #7f8c8d;"/>
+        <Label text="Largura do STL (mm):" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="txtLargura" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
 
-        <Label text="Altura Máxima (mm):" GridPane.columnIndex="0" GridPane.rowIndex="1"
-               style="-fx-font-weight: bold;"/>
-        <TextField fx:id="txtAltura" text="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1"
-                   style="-fx-pref-width: 120;"/>
-        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="1"
-               style="-fx-text-fill: #7f8c8d;"/>
+        <Label text="Altura do Branco (Transparente do PNG implica na cor branca):" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="txtAlturaBranco" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="1"/>
 
-        <Label text="Formato de exportação:" GridPane.columnIndex="0" GridPane.rowIndex="2"
+        <Label text="Altura do Preto:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <TextField fx:id="txtAlturaPreto" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+
+        <Label text="Altura do Vermelho:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <TextField fx:id="txtAlturaVermelho" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+        <Label text="mm" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+
+        <Label text="Formato de exportação:" GridPane.columnIndex="0" GridPane.rowIndex="4"
                style="-fx-font-weight: bold;"/>
-        <ComboBox fx:id="cbFormato" GridPane.columnIndex="1" GridPane.rowIndex="2"
+        <ComboBox fx:id="cbFormato" GridPane.columnIndex="1" GridPane.rowIndex="4"
                   style="-fx-pref-width: 120;">
             <items>
                 <FXCollections fx:factory="observableArrayList">
@@ -68,13 +70,6 @@
                 </FXCollections>
             </items>
         </ComboBox>
-        <Label GridPane.columnIndex="2" GridPane.rowIndex="2"/>
-
-        <CheckBox fx:id="chkinvert"
-                  text="Tornar a região branca como base"
-                  GridPane.columnIndex="0" GridPane.rowIndex="3"
-                  GridPane.columnSpan="2"
-                  style="-fx-padding: 5;"/>
     </GridPane>
 
     <!-- Botão Gerar -->

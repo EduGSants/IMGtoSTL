@@ -3,94 +3,139 @@ package services;
 import models.*;
 
 public class MeshGenerator {
+    private static final float EPSILON = 0.001f;
     private final float baseZ = 0.0f;
 
     public Mesh createSolid(ImageReader.pixels[][] heightMap) {
         Mesh mesh = new Mesh();
         int width = heightMap.length;
         int height = heightMap[0].length;
+
         buildTopSurface(mesh, heightMap, width, height);
-        buildBottomSurface(mesh, width, height);
+        buildBottomSurface(mesh, heightMap, width, height);
         buildWalls(mesh, heightMap, width, height);
+
         return mesh;
     }
 
-    private void buildTopSurface(Mesh mesh, ImageReader.pixels[][] heightMap, int width, int height) {
-        for (int x = 0; x < width - 1; x++) {
-            for (int y = 0; y < height - 1; y++) {
-                // Índices invertidos na imagem
-                int imgY0 = height - 1 - y;
-                int imgY1 = height - 2 - y;
+    // ============================================
+    // Helpers
+    // ============================================
+    private boolean isSolid(ImageReader.pixels p) {
+        return p.thickness > EPSILON;
+    }
 
-                // P1: Superior Esquerdo (x, y)
-                // P2: Superior Direito (x+1, y)
-                // P3: Inferior Esquerdo (x, y+1)
-                // P4: Inferior Direito (x+1, y+1)
-                Vector3D p1 = new Vector3D(x, y, heightMap[x][imgY0].thickness);
-                Vector3D p2 = new Vector3D(x + 1, y, heightMap[x+1][imgY0].thickness);
-                Vector3D p3 = new Vector3D(x, y + 1, heightMap[x][imgY1].thickness);
-                Vector3D p4 = new Vector3D(x + 1, y + 1, heightMap[x+1][imgY1].thickness);
-                mesh.addTriangle(new Triangle(p1, p3, p2));
-                mesh.addTriangle(new Triangle(p3, p4, p2));
+    /** Retorna o pixel correspondente em (x, y) no espaço do modelo (com Y invertido). */
+    private ImageReader.pixels pixelAt(ImageReader.pixels[][] hm, int x, int y, int h) {
+        return hm[x][h - 1 - y];
+    }
+
+    /** Um quad é ativo se os 4 cantos são sólidos. */
+    private boolean quadActive(ImageReader.pixels[][] hm, int x, int y, int w, int h) {
+        if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1) return false;
+        return isSolid(hm[x][h - 1 - y])
+                && isSolid(hm[x + 1][h - 1 - y])
+                && isSolid(hm[x][h - 2 - y])
+                && isSolid(hm[x + 1][h - 2 - y]);
+    }
+
+    // ============================================
+    // ETAPA A: SUPERFÍCIE SUPERIOR
+    // ============================================
+    private void buildTopSurface(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
+        for (int x = 0; x < w - 1; x++) {
+            for (int y = 0; y < h - 1; y++) {
+                if (!quadActive(hm, x, y, w, h)) continue;
+
+                ImageReader.pixels pTL = pixelAt(hm, x,     y,     h);
+                ImageReader.pixels pTR = pixelAt(hm, x + 1, y,     h);
+                ImageReader.pixels pBL = pixelAt(hm, x,     y + 1, h);
+                ImageReader.pixels pBR = pixelAt(hm, x + 1, y + 1, h);
+
+                Vector3D vTL = new Vector3D(x,     y,     pTL.thickness);
+                Vector3D vTR = new Vector3D(x + 1, y,     pTR.thickness);
+                Vector3D vBL = new Vector3D(x,     y + 1, pBL.thickness);
+                Vector3D vBR = new Vector3D(x + 1, y + 1, pBR.thickness);
+
+                mesh.addTriangle(new Triangle(vTL, vBL, vTR));
+                mesh.addTriangle(new Triangle(vBL, vBR, vTR));
             }
         }
     }
 
-    private void buildBottomSurface(Mesh mesh, int width, int height) {
-        Vector3D p1 = new Vector3D(0, 0, baseZ);
-        Vector3D p2 = new Vector3D(width - 1, 0, baseZ);
-        Vector3D p3 = new Vector3D(0, height - 1, baseZ);
-        Vector3D p4 = new Vector3D(width - 1, height - 1, baseZ);
-        mesh.addTriangle(new Triangle(p1, p2, p3));
-        mesh.addTriangle(new Triangle(p2, p4, p3));
+    // ============================================
+    // ETAPA B: SUPERFÍCIE INFERIOR
+    // ============================================
+    private void buildBottomSurface(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
+        for (int x = 0; x < w - 1; x++) {
+            for (int y = 0; y < h - 1; y++) {
+                if (!quadActive(hm, x, y, w, h)) continue;
+
+                Vector3D vTL = new Vector3D(x,     y,     baseZ);
+                Vector3D vTR = new Vector3D(x + 1, y,     baseZ);
+                Vector3D vBL = new Vector3D(x,     y + 1, baseZ);
+                Vector3D vBR = new Vector3D(x + 1, y + 1, baseZ);
+
+                // Winding invertida (visto de baixo)
+                mesh.addTriangle(new Triangle(vTL, vTR, vBL));
+                mesh.addTriangle(new Triangle(vTR, vBR, vBL));
+            }
+        }
     }
 
-    private void buildWalls(Mesh mesh, ImageReader.pixels[][] heightMap, int width, int height) {
-        int topY = height - 1;
-        for (int x = 0; x < width - 1; x++) {
-            Vector3D topLeft = new Vector3D(x, 0, heightMap[x][topY].thickness);
-            Vector3D topRight = new Vector3D(x + 1, 0, heightMap[x+1][topY].thickness);
-            Vector3D botLeft = new Vector3D(x, 0, baseZ);
-            Vector3D botRight = new Vector3D(x + 1, 0, baseZ);
-            // Anti-horário visto de fora (frente)
-            mesh.addTriangle(new Triangle(topLeft, topRight, botLeft));
-            mesh.addTriangle(new Triangle(topRight, botRight, botLeft));
-        }
+    // ============================================
+    // ETAPA C: PAREDES (perímetro + fronteiras internas)
+    // ============================================
+    private void buildWalls(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
+        for (int x = 0; x < w - 1; x++) {
+            for (int y = 0; y < h - 1; y++) {
+                if (!quadActive(hm, x, y, w, h)) continue;
 
-        int bottomY = 0;
-        for (int x = 0; x < width - 1; x++) {
-            Vector3D topLeft = new Vector3D(x, height - 1, heightMap[x][bottomY].thickness);
-            Vector3D topRight = new Vector3D(x + 1, height - 1, heightMap[x+1][bottomY].thickness);
-            Vector3D botLeft = new Vector3D(x, height - 1, baseZ);
-            Vector3D botRight = new Vector3D(x + 1, height - 1, baseZ);
-            // Anti-horário visto de fora (trás)
-            mesh.addTriangle(new Triangle(topLeft, botLeft, topRight));
-            mesh.addTriangle(new Triangle(topRight, botLeft, botRight));
-        }
+                ImageReader.pixels pTL = pixelAt(hm, x,     y,     h);
+                ImageReader.pixels pTR = pixelAt(hm, x + 1, y,     h);
+                ImageReader.pixels pBL = pixelAt(hm, x,     y + 1, h);
+                ImageReader.pixels pBR = pixelAt(hm, x + 1, y + 1, h);
 
-        for (int y = 0; y < height - 1; y++) {
-            int imgY0 = height - 1 - y;
-            int imgY1 = height - 2 - y;
-            Vector3D topLeft = new Vector3D(0, y, heightMap[0][imgY0].thickness);
-            Vector3D topRight = new Vector3D(0, y + 1, heightMap[0][imgY1].thickness);
-            Vector3D botLeft = new Vector3D(0, y, baseZ);
-            Vector3D botRight = new Vector3D(0, y + 1, baseZ);
-            // Anti-horário visto de fora (esquerda)
-            mesh.addTriangle(new Triangle(topLeft, botLeft, topRight));
-            mesh.addTriangle(new Triangle(topRight, botLeft, botRight));
-        }
+                // --- Aresta SUPERIOR (vizinho em y-1) ---
+                if (!quadActive(hm, x, y - 1, w, h)) {
+                    Vector3D topL = new Vector3D(x,     y, pTL.thickness);
+                    Vector3D topR = new Vector3D(x + 1, y, pTR.thickness);
+                    Vector3D botL = new Vector3D(x,     y, baseZ);
+                    Vector3D botR = new Vector3D(x + 1, y, baseZ);
+                    mesh.addTriangle(new Triangle(topL, topR, botL));
+                    mesh.addTriangle(new Triangle(topR, botR, botL));
+                }
 
-        int rightX = width - 1;
-        for (int y = 0; y < height - 1; y++) {
-            int imgY0 = height - 1 - y;
-            int imgY1 = height - 2 - y;
-            Vector3D topLeft = new Vector3D(rightX, y, heightMap[rightX][imgY0].thickness);
-            Vector3D topRight = new Vector3D(rightX, y + 1, heightMap[rightX][imgY1].thickness);
-            Vector3D botLeft = new Vector3D(rightX, y, baseZ);
-            Vector3D botRight = new Vector3D(rightX, y + 1, baseZ);
-            // Anti-horário visto de fora (direita)
-            mesh.addTriangle(new Triangle(topLeft, topRight, botLeft));
-            mesh.addTriangle(new Triangle(topRight, botRight, botLeft));
+                // --- Aresta INFERIOR (vizinho em y+1) ---
+                if (!quadActive(hm, x, y + 1, w, h)) {
+                    Vector3D topL = new Vector3D(x,     y + 1, pBL.thickness);
+                    Vector3D topR = new Vector3D(x + 1, y + 1, pBR.thickness);
+                    Vector3D botL = new Vector3D(x,     y + 1, baseZ);
+                    Vector3D botR = new Vector3D(x + 1, y + 1, baseZ);
+                    mesh.addTriangle(new Triangle(topL, botL, topR));
+                    mesh.addTriangle(new Triangle(topR, botL, botR));
+                }
+
+                // --- Aresta ESQUERDA (vizinho em x-1) ---
+                if (!quadActive(hm, x - 1, y, w, h)) {
+                    Vector3D topL = new Vector3D(x, y,     pTL.thickness);
+                    Vector3D topR = new Vector3D(x, y + 1, pBL.thickness);
+                    Vector3D botL = new Vector3D(x, y,     baseZ);
+                    Vector3D botR = new Vector3D(x, y + 1, baseZ);
+                    mesh.addTriangle(new Triangle(topL, botL, topR));
+                    mesh.addTriangle(new Triangle(topR, botL, botR));
+                }
+
+                // --- Aresta DIREITA (vizinho em x+1) ---
+                if (!quadActive(hm, x + 1, y, w, h)) {
+                    Vector3D topL = new Vector3D(x + 1, y,     pTR.thickness);
+                    Vector3D topR = new Vector3D(x + 1, y + 1, pBR.thickness);
+                    Vector3D botL = new Vector3D(x + 1, y,     baseZ);
+                    Vector3D botR = new Vector3D(x + 1, y + 1, baseZ);
+                    mesh.addTriangle(new Triangle(topL, topR, botL));
+                    mesh.addTriangle(new Triangle(topR, botR, botL));
+                }
+            }
         }
     }
 }
