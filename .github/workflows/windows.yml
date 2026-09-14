@@ -46,15 +46,15 @@ jobs:
         run: |
           jpackage `
             --type exe `
-            --name PNGtoSTL `
+            --name IMGtoSTL `
             --input "target" `
             --main-jar "PNGtoSTL-1.0-SNAPSHOT.jar" `
-            --main-class "application.MainApp" `
+            --main-class "application.Launcher" `
             --dest "target/dist" `
             --icon "src/resources/icon.ico"
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: PNGtoSTL-Windows
+          name: IMGtoSTL-Windows
           path: target/dist/*.exe
