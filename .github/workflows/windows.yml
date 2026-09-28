@@ -48,7 +48,7 @@ jobs:
             --type exe `
             --name IMGtoSTL `
             --input "target" `
-            --main-jar "PNGtoSTL-1.0-SNAPSHOT.jar" `
+            --main-jar "IMGtoSTL-0.4-SNAPSHOT.jar" `
             --main-class "application.Launcher" `
             --dest "target/dist" `
             --icon "src/resources/icon.ico"
