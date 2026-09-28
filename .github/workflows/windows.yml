@@ -33,7 +33,7 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item `
-            "target/PNGtoSTL-1.0-SNAPSHOT.jar" `
+            "target/IMGtoSTL-0.4-SNAPSHOT.jar" `
             "target/jpackage-input/"
 
       - name: Show jpackage input
