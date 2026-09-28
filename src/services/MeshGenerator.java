@@ -18,19 +18,14 @@ public class MeshGenerator {
         return mesh;
     }
 
-    // ============================================
-    // Helpers
-    // ============================================
     private boolean isSolid(ImageReader.pixels p) {
         return p.thickness > EPSILON;
     }
 
-    /** Retorna o pixel correspondente em (x, y) no espaço do modelo (com Y invertido). */
     private ImageReader.pixels pixelAt(ImageReader.pixels[][] hm, int x, int y, int h) {
         return hm[x][h - 1 - y];
     }
 
-    /** Um quad é ativo se os 4 cantos são sólidos. */
     private boolean quadActive(ImageReader.pixels[][] hm, int x, int y, int w, int h) {
         if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1) return false;
         return isSolid(hm[x][h - 1 - y])
@@ -39,9 +34,6 @@ public class MeshGenerator {
                 && isSolid(hm[x + 1][h - 2 - y]);
     }
 
-    // ============================================
-    // ETAPA A: SUPERFÍCIE SUPERIOR
-    // ============================================
     private void buildTopSurface(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
         for (int x = 0; x < w - 1; x++) {
             for (int y = 0; y < h - 1; y++) {
@@ -63,9 +55,6 @@ public class MeshGenerator {
         }
     }
 
-    // ============================================
-    // ETAPA B: SUPERFÍCIE INFERIOR
-    // ============================================
     private void buildBottomSurface(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
         for (int x = 0; x < w - 1; x++) {
             for (int y = 0; y < h - 1; y++) {
@@ -76,16 +65,12 @@ public class MeshGenerator {
                 Vector3D vBL = new Vector3D(x,     y + 1, baseZ);
                 Vector3D vBR = new Vector3D(x + 1, y + 1, baseZ);
 
-                // Winding invertida (visto de baixo)
                 mesh.addTriangle(new Triangle(vTL, vTR, vBL));
                 mesh.addTriangle(new Triangle(vTR, vBR, vBL));
             }
         }
     }
 
-    // ============================================
-    // ETAPA C: PAREDES (perímetro + fronteiras internas)
-    // ============================================
     private void buildWalls(Mesh mesh, ImageReader.pixels[][] hm, int w, int h) {
         for (int x = 0; x < w - 1; x++) {
             for (int y = 0; y < h - 1; y++) {
@@ -96,7 +81,6 @@ public class MeshGenerator {
                 ImageReader.pixels pBL = pixelAt(hm, x,     y + 1, h);
                 ImageReader.pixels pBR = pixelAt(hm, x + 1, y + 1, h);
 
-                // --- Aresta SUPERIOR (vizinho em y-1) ---
                 if (!quadActive(hm, x, y - 1, w, h)) {
                     Vector3D topL = new Vector3D(x,     y, pTL.thickness);
                     Vector3D topR = new Vector3D(x + 1, y, pTR.thickness);
@@ -106,7 +90,6 @@ public class MeshGenerator {
                     mesh.addTriangle(new Triangle(topR, botR, botL));
                 }
 
-                // --- Aresta INFERIOR (vizinho em y+1) ---
                 if (!quadActive(hm, x, y + 1, w, h)) {
                     Vector3D topL = new Vector3D(x,     y + 1, pBL.thickness);
                     Vector3D topR = new Vector3D(x + 1, y + 1, pBR.thickness);
@@ -116,7 +99,6 @@ public class MeshGenerator {
                     mesh.addTriangle(new Triangle(topR, botL, botR));
                 }
 
-                // --- Aresta ESQUERDA (vizinho em x-1) ---
                 if (!quadActive(hm, x - 1, y, w, h)) {
                     Vector3D topL = new Vector3D(x, y,     pTL.thickness);
                     Vector3D topR = new Vector3D(x, y + 1, pBL.thickness);
@@ -126,7 +108,6 @@ public class MeshGenerator {
                     mesh.addTriangle(new Triangle(topR, botL, botR));
                 }
 
-                // --- Aresta DIREITA (vizinho em x+1) ---
                 if (!quadActive(hm, x + 1, y, w, h)) {
                     Vector3D topL = new Vector3D(x + 1, y,     pTR.thickness);
                     Vector3D topR = new Vector3D(x + 1, y + 1, pBR.thickness);

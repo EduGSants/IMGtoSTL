@@ -50,8 +50,6 @@ public class Mesh3DViewer {
         fillLight.setTranslateY(200);
         fillLight.setTranslateZ(-200);
 
-        // --- Hierarquia: worldGroup -> orientationGroup -> contentGroup ---
-        // orientationGroup gira 90° em X para que o eixo Z (altura) aponte para cima no JavaFX
         orientationGroup.getTransforms().add(new Rotate(90, Rotate.X_AXIS));
         orientationGroup.getChildren().add(contentGroup);
         worldGroup.getTransforms().addAll(rotateYTransform, rotateXTransform);
@@ -79,9 +77,6 @@ public class Mesh3DViewer {
         return container;
     }
 
-    // ============================================
-    // Controles de mouse (arrastar = rotacionar, scroll = zoom)
-    // ============================================
     private void setupControls() {
         subScene.setOnMousePressed(e -> {
             anchorX = e.getSceneX();
@@ -106,9 +101,6 @@ public class Mesh3DViewer {
         });
     }
 
-    // ============================================
-    // Define o mesh a ser exibido
-    // ============================================
     public void setMesh(Mesh mesh, Color cor) {
         System.out.println(">>> setMesh chamado. mesh = " + mesh);
         if (mesh == null) return;
@@ -137,7 +129,6 @@ public class Mesh3DViewer {
             return;
         }
 
-        // Ocupa 65% da dimensão de referência
         double margem = 0.65;
         double escala = (300.0 * margem) / maxDim;
 
@@ -152,11 +143,7 @@ public class Mesh3DViewer {
         contentGroup.getChildren().add(meshView);
     }
 
-    // ============================================
-    // Conversão models.Mesh -> javafx.scene.shape.TriangleMesh
-    // ============================================
     private TriangleMesh convertToFxMesh(Mesh mesh) {
-        // Reutiliza vértices idênticos (economiza memória em malhas grandes)
         Map<String, Integer> indexMap = new HashMap<>();
         List<Float> points = new ArrayList<>();
         List<Integer> faces = new ArrayList<>();
@@ -166,8 +153,6 @@ public class Mesh3DViewer {
             int i2 = getOrAddVertex(t.v2, points, indexMap);
             int i3 = getOrAddVertex(t.v3, points, indexMap);
 
-            // Formato POINT_TEXCOORD: p0, t0, p1, t1, p2, t2
-            // Usamos 0 como índice de textura (não há textura por enquanto)
             faces.add(i1); faces.add(0);
             faces.add(i2); faces.add(0);
             faces.add(i3); faces.add(0);

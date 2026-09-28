@@ -8,8 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -46,7 +44,6 @@ public class MainController {
 
     @FXML
     public void initialize() {
-        // Viewer
         final int VIEW_W = 500;
         final int VIEW_H = 400;
         previewPane.setMinSize(VIEW_W, VIEW_H);
@@ -59,7 +56,6 @@ public class MainController {
         previewPane.setClip(new Rectangle(VIEW_W, VIEW_H));
         previewPane.getChildren().add(sub);
 
-        // --- Valores iniciais ---
         txtLargura.setText("100.0");
         txtAlturaBranco.setText("5.0");
         txtAlturaPreto.setText("0.0");
@@ -297,21 +293,17 @@ public class MainController {
 
         System.out.println(">>> atualizarPreview chamado.");
 
-        // 1. Verificar se uma imagem foi selecionada
         if (imagemSelecionada == null) {
             mostrarAlerta("Erro", "Selecione uma imagem primeiro!");
             return;
         }
 
         try {
-
-            // 2. Ler os valores atuais dos campos
             float largura = Float.parseFloat(txtLargura.getText());
             float alturaBranco = Float.parseFloat(txtAlturaBranco.getText());
             float alturaPreto = Float.parseFloat(txtAlturaPreto.getText());
             float alturaVermelho = Float.parseFloat(txtAlturaVermelho.getText());
 
-            // 3. Validar os valores
             if (largura <= 0) {
                 mostrarAlerta("Erro", "A largura deve ser maior que zero!");
                 return;
@@ -327,14 +319,12 @@ public class MainController {
                 return;
             }
 
-            // 4. Guardar os valores atuais para a Task
             final File arquivo = imagemSelecionada;
 
             final float hBranco = alturaBranco;
             final float hPreto = alturaPreto;
             final float hVermelho = alturaVermelho;
 
-            // 5. Desabilitar o botão durante o processamento
             btnPreview.setDisable(true);
 
             Task<Mesh> task = new Task<>() {
@@ -350,7 +340,6 @@ public class MainController {
                         throw new Exception("Não foi possível ler a imagem.");
                     }
 
-                    // Reduz a resolução apenas para a pré-visualização
                     BufferedImage imagemPreview = reduzirImagem(
                             bufferedImage,
                             256
@@ -380,10 +369,8 @@ public class MainController {
                 }
             };
 
-            // 6. Atualizar o status
             lblStatus.textProperty().bind(task.messageProperty());
 
-            // 7. Quando a malha for gerada
             task.setOnSucceeded(event -> {
 
                 lblStatus.textProperty().unbind();
@@ -400,8 +387,6 @@ public class MainController {
 
                 lblStatus.setText("Preview atualizado com sucesso!");
             });
-
-            // 8. Tratar erros
             task.setOnFailed(event -> {
 
                 lblStatus.textProperty().unbind();
@@ -413,8 +398,6 @@ public class MainController {
 
                 erro.printStackTrace();
             });
-
-            // 9. Executar em uma thread separada
             Thread thread = new Thread(task);
             thread.setDaemon(true);
             thread.start();
