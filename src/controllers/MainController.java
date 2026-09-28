@@ -1,29 +1,33 @@
 package controllers;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.SubScene;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.image.*;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.concurrent.Task;
-import models.*;
-import services.*;
+import models.Mesh;
+import services.ImageReader;
+import services.MeshGenerator;
+import views.Mesh3DViewer;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.nio.file.*;
 
 public class MainController {
 
     @FXML private Button btnSelecionarArquivo;
     @FXML private Label lblNomeArquivo;
-    @FXML private ImageView imgPreview;
     @FXML private TextField txtLargura;
     @FXML private TextField txtAlturaBranco;
     @FXML private TextField txtAlturaPreto;
@@ -31,14 +35,31 @@ public class MainController {
     @FXML private ComboBox<String> cbFormato;
     @FXML private Button btnGerar;
     @FXML private Button btnLimpar;
+    @FXML private Button btnPreview;
     @FXML private ProgressBar progressBar;
     @FXML private Label lblStatus;
-
+    @FXML private StackPane previewPane;
+    private Mesh3DViewer viewer;
     private File imagemSelecionada;
     private Mesh meshGerado;
 
+
     @FXML
     public void initialize() {
+        // Viewer
+        final int VIEW_W = 500;
+        final int VIEW_H = 400;
+        previewPane.setMinSize(VIEW_W, VIEW_H);
+        previewPane.setPrefSize(VIEW_W, VIEW_H);
+        previewPane.setMaxSize(VIEW_W, VIEW_H);
+        viewer = new Mesh3DViewer(VIEW_W, VIEW_H);
+        SubScene sub = viewer.getSubScene();
+        sub.setWidth(VIEW_W);
+        sub.setHeight(VIEW_H);
+        previewPane.setClip(new Rectangle(VIEW_W, VIEW_H));
+        previewPane.getChildren().add(sub);
+
+        // --- Valores iniciais ---
         txtLargura.setText("100.0");
         txtAlturaBranco.setText("5.0");
         txtAlturaPreto.setText("0.0");
@@ -75,11 +96,14 @@ public class MainController {
             lblNomeArquivo.setText(file.getName());
             lblNomeArquivo.setStyle("-fx-text-fill: #27ae60;");
 
-            // Carregar pré-visualização
             try {
-                Image image = new Image(file.toURI().toString());
-                imgPreview.setImage(image);
-                lblStatus.setText("Imagem carregada: " + file.getName());
+                if (file != null) {
+                    imagemSelecionada = file;
+                    lblNomeArquivo.setText(file.getName());
+                    lblNomeArquivo.setStyle("-fx-text-fill: #27ae60;");
+                    lblStatus.setText("Imagem carregada: " + file.getName());
+                    atualizarPreview();
+                }
             } catch (Exception e) {
                 lblStatus.setText("Erro ao carregar imagem!");
                 e.printStackTrace();
@@ -129,18 +153,17 @@ public class MainController {
                         throw new Exception("Erro ao ler a imagem.");
                     }
 
-                    // 👇 Nova chamada com 3 alturas
                     ImageReader.pixels[][] heightMap = ImageReader.generateMatrix(
                             bufferedImage, alturaBranco, alturaPreto, alturaVermelho);
 
-                    updateProgress(0.3, 100);
+                    updateProgress(0.5, 100);
                     updateMessage("Gerando malha 3D...");
 
                     MeshGenerator generator = new MeshGenerator();
                     meshHolder[0] = generator.createSolid(heightMap);
 
                     updateProgress(1.0, 100);
-                    updateMessage("Pronto para salvar!");
+                    updateMessage("Pronto!");
                     return null;
                 }
             };
@@ -148,31 +171,35 @@ public class MainController {
             progressBar.progressProperty().bind(task.progressProperty());
             lblStatus.textProperty().bind(task.messageProperty());
 
-            task.setOnSucceeded(e -> {
-                Platform.runLater(() -> {
-                    btnGerar.setDisable(false);
-                    btnSelecionarArquivo.setDisable(false);
-                    lblStatus.textProperty().unbind();
-                    progressBar.progressProperty().unbind();
+            task.setOnSucceeded(e -> Platform.runLater(() -> {
+                System.out.println(">>> setOnSucceeded executou. meshHolder[0] = " + meshHolder[0]);
 
-                    if (meshHolder[0] != null) {
-                        salvarSTL(meshHolder[0]);
-                    } else {
-                        lblStatus.setText("❌ Erro: mesh não gerado.");
-                    }
-                });
-            });
+                btnGerar.setDisable(false);
+                btnSelecionarArquivo.setDisable(false);
+                lblStatus.textProperty().unbind();
+                progressBar.progressProperty().unbind();
+                progressBar.setProgress(1.0);
 
-            task.setOnFailed(e -> {
-                Platform.runLater(() -> {
-                    btnGerar.setDisable(false);
-                    btnSelecionarArquivo.setDisable(false);
-                    lblStatus.textProperty().unbind();
-                    progressBar.progressProperty().unbind();
-                    lblStatus.setText("❌ Erro: " + task.getException().getMessage());
-                    progressBar.setProgress(0);
-                });
-            });
+                if (meshHolder[0] != null) {
+                    meshGerado = meshHolder[0];
+                    System.out.println(">>> meshGerado atribuído. Triangles = " + meshGerado.getTriangles().size());
+
+                    viewer.setMesh(meshGerado, Color.web("#4a90d9"));
+                    salvarSTL(meshGerado);
+                } else {
+                    lblStatus.setText("❌ Erro: mesh não gerado.");
+                }
+            }));
+
+            task.setOnFailed(e -> Platform.runLater(() -> {
+                btnGerar.setDisable(false);
+                btnSelecionarArquivo.setDisable(false);
+                lblStatus.textProperty().unbind();
+                progressBar.progressProperty().unbind();
+                lblStatus.setText("❌ Erro: " + task.getException().getMessage());
+                progressBar.setProgress(0);
+                task.getException().printStackTrace();
+            }));
 
             new Thread(task).start();
 
@@ -184,17 +211,15 @@ public class MainController {
     private void salvarSTL(Mesh mesh) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Salvar STL");
-        fileChooser.setInitialFileName("*.stl");
+        fileChooser.setInitialFileName("modelo_3d.stl");
 
         String formato = cbFormato.getValue();
         if (formato.contains("Binário")) {
             fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("STL Binário", "*.stl")
-            );
+                    new FileChooser.ExtensionFilter("STL Binário", "*.stl"));
         } else {
             fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("STL ASCII", "*.stl")
-            );
+                    new FileChooser.ExtensionFilter("STL ASCII", "*.stl"));
         }
 
         Stage stage = (Stage) btnGerar.getScene().getWindow();
@@ -203,9 +228,7 @@ public class MainController {
         if (file != null) {
             try {
                 String filename = file.getAbsolutePath();
-                if (!filename.endsWith(".stl")) {
-                    filename += ".stl";
-                }
+                if (!filename.endsWith(".stl")) filename += ".stl";
 
                 if (formato.contains("Binário")) {
                     mesh.saveAsSTL_Binary(filename);
@@ -213,7 +236,6 @@ public class MainController {
                     String nome = file.getName().replace(".stl", "");
                     mesh.saveAsSTL_ASCII(filename, nome);
                 }
-
                 lblStatus.setText("✅ STL salvo em: " + file.getPath());
             } catch (Exception ex) {
                 lblStatus.setText("❌ Erro ao salvar STL: " + ex.getMessage());
@@ -224,41 +246,182 @@ public class MainController {
         }
     }
 
-    private void salvarSTL(Mesh mesh, float largura, float alturaMax) throws Exception {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Salvar STL");
-        fileChooser.setInitialFileName("modelo_3d.stl");
+    private BufferedImage reduzirImagem(
+            BufferedImage original,
+            int larguraMaxima
+    ) {
+        int largura = original.getWidth();
+        int altura = original.getHeight();
 
-        // Adicionar extensão baseada no formato
-        String formato = cbFormato.getValue();
-        if (formato.contains("Binário")) {
-            fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("STL Binário", "*.stl")
-            );
-        } else {
-            fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("STL ASCII", "*.stl")
-            );
+        if (largura <= larguraMaxima) {
+            return original;
         }
 
-        Stage stage = (Stage) btnGerar.getScene().getWindow();
-        File file = fileChooser.showSaveDialog(stage);
+        double escala = (double) larguraMaxima / largura;
 
-        if (file != null) {
-            String filename = file.getAbsolutePath();
-            if (!filename.endsWith(".stl")) {
-                filename += ".stl";
+        int novaLargura = larguraMaxima;
+        int novaAltura = Math.max(
+                1,
+                (int) (altura * escala)
+        );
+
+        BufferedImage reduzida = new BufferedImage(
+                novaLargura,
+                novaAltura,
+                BufferedImage.TYPE_INT_RGB
+        );
+
+        Graphics2D g = reduzida.createGraphics();
+
+        g.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+        );
+
+        g.drawImage(
+                original,
+                0,
+                0,
+                novaLargura,
+                novaAltura,
+                null
+        );
+
+        g.dispose();
+
+        return reduzida;
+    }
+
+    @FXML
+    private void atualizarPreview() {
+
+        System.out.println(">>> atualizarPreview chamado.");
+
+        // 1. Verificar se uma imagem foi selecionada
+        if (imagemSelecionada == null) {
+            mostrarAlerta("Erro", "Selecione uma imagem primeiro!");
+            return;
+        }
+
+        try {
+
+            // 2. Ler os valores atuais dos campos
+            float largura = Float.parseFloat(txtLargura.getText());
+            float alturaBranco = Float.parseFloat(txtAlturaBranco.getText());
+            float alturaPreto = Float.parseFloat(txtAlturaPreto.getText());
+            float alturaVermelho = Float.parseFloat(txtAlturaVermelho.getText());
+
+            // 3. Validar os valores
+            if (largura <= 0) {
+                mostrarAlerta("Erro", "A largura deve ser maior que zero!");
+                return;
             }
 
-            // Escalar o mesh para a largura desejada
-            if (formato.contains("Binário")) {
-                mesh.saveAsSTL_Binary(filename);
-            } else {
-                String nome = file.getName().replace(".stl", "");
-                mesh.saveAsSTL_ASCII(filename, nome);
+            if (alturaBranco < 0 || alturaPreto < 0 || alturaVermelho < 0) {
+                mostrarAlerta("Erro", "As alturas não podem ser negativas!");
+                return;
             }
 
-            Desktop.getDesktop().open(file.getParentFile());
+            if (alturaBranco == 0 && alturaPreto == 0 && alturaVermelho == 0) {
+                mostrarAlerta("Erro", "Pelo menos uma altura deve ser maior que zero!");
+                return;
+            }
+
+            // 4. Guardar os valores atuais para a Task
+            final File arquivo = imagemSelecionada;
+
+            final float hBranco = alturaBranco;
+            final float hPreto = alturaPreto;
+            final float hVermelho = alturaVermelho;
+
+            // 5. Desabilitar o botão durante o processamento
+            btnPreview.setDisable(true);
+
+            Task<Mesh> task = new Task<>() {
+
+                @Override
+                protected Mesh call() throws Exception {
+
+                    updateMessage("Lendo imagem...");
+
+                    BufferedImage bufferedImage = ImageIO.read(arquivo);
+
+                    if (bufferedImage == null) {
+                        throw new Exception("Não foi possível ler a imagem.");
+                    }
+
+                    // Reduz a resolução apenas para a pré-visualização
+                    BufferedImage imagemPreview = reduzirImagem(
+                            bufferedImage,
+                            256
+                    );
+
+                    updateMessage("Gerando matriz de alturas...");
+
+                    ImageReader.pixels[][] heightMap =
+                            ImageReader.generateMatrix(
+                                    imagemPreview,
+                                    hBranco,
+                                    hPreto,
+                                    hVermelho
+                            );
+
+                    updateMessage("Gerando malha 3D...");
+
+                    MeshGenerator generator = new MeshGenerator();
+
+                    Mesh mesh = generator.createSolid(heightMap);
+
+                    if (mesh == null || mesh.getTriangles().isEmpty()) {
+                        throw new Exception("A malha gerada está vazia.");
+                    }
+
+                    return mesh;
+                }
+            };
+
+            // 6. Atualizar o status
+            lblStatus.textProperty().bind(task.messageProperty());
+
+            // 7. Quando a malha for gerada
+            task.setOnSucceeded(event -> {
+
+                lblStatus.textProperty().unbind();
+                btnPreview.setDisable(false);
+
+                meshGerado = task.getValue();
+
+                System.out.println(
+                        ">>> Preview gerado. Triangles = "
+                                + meshGerado.getTriangles().size()
+                );
+
+                viewer.setMesh(meshGerado, Color.web("#4a90d9"));
+
+                lblStatus.setText("Preview atualizado com sucesso!");
+            });
+
+            // 8. Tratar erros
+            task.setOnFailed(event -> {
+
+                lblStatus.textProperty().unbind();
+                btnPreview.setDisable(false);
+
+                Throwable erro = task.getException();
+
+                lblStatus.setText("Erro ao gerar preview: " + erro.getMessage());
+
+                erro.printStackTrace();
+            });
+
+            // 9. Executar em uma thread separada
+            Thread thread = new Thread(task);
+            thread.setDaemon(true);
+            thread.start();
+
+        } catch (NumberFormatException ex) {
+
+            mostrarAlerta("Erro", "Valores numéricos inválidos!");
         }
     }
 
@@ -268,7 +431,6 @@ public class MainController {
         meshGerado = null;
         lblNomeArquivo.setText("Nenhum arquivo selecionado");
         lblNomeArquivo.setStyle("-fx-text-fill: #7f8c8d;");
-        imgPreview.setImage(null);
         lblStatus.setText("Aguardando...");
         progressBar.setProgress(0);
         txtLargura.setText("100.0");
@@ -276,6 +438,7 @@ public class MainController {
         txtAlturaPreto.setText("0.0");
         txtAlturaVermelho.setText("2.5");
         cbFormato.setValue("Binário (.stl)");
+        if (viewer != null) viewer.limpar();
     }
 
     private void mostrarAlerta(String titulo, String mensagem) {

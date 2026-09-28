@@ -6,6 +6,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.stage.FileChooser?>
 
 <?import java.lang.String?>
@@ -35,9 +36,10 @@
                    style="-fx-text-fill: #7f8c8d;"/>
         </HBox>
 
-        <!-- Pré-visualização da imagem -->
-        <ImageView fx:id="imgPreview" fitHeight="200" fitWidth="300"
-                   preserveRatio="true" style="-fx-border-color: #bdc3c7; -fx-border-width: 1;"/>
+        <StackPane fx:id="previewPane"
+                   prefWidth="500" prefHeight="400"
+                   maxWidth="500" maxHeight="400"
+                   style="-fx-border-color: #bdc3c7; -fx-border-width: 1; -fx-background-color: #282c34;"/>
     </VBox>
 
     <!-- Configurações -->
@@ -81,6 +83,10 @@
         <Button fx:id="btnLimpar" text="🗑️ Limpar"
                 onAction="#limpar"
                 style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 30;"/>
+
+        <Button fx:id="btnPreview" text="👁 Atualizar Preview"
+                onAction="#atualizarPreview"
+                style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 12 25;"/>
     </HBox>
 
     <!-- Barra de progresso / Status -->

@@ -7,9 +7,9 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.seuprojeto</groupId>
-    <artifactId>PNGtoSTL</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>com.imgtostl</groupId>
+    <artifactId>IMGtoSTL</artifactId>
+    <version>0.4-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
